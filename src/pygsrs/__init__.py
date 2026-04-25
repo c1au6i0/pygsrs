@@ -16,6 +16,7 @@ Sync Functions
 - :func:`gsrs_names` — all names for a substance
 - :func:`gsrs_codes` — all external codes for a substance
 - :func:`gsrs_structure` — chemical structure data
+- :func:`gsrs_structure_from_id` — structure from any identifier (UNII, name, SMILES, InChIKey, CAS)
 - :func:`gsrs_structure_search` — search by SMILES
 - :func:`gsrs_hierarchy` — relationship hierarchy
 - :func:`gsrs_browse` — paginated browse
@@ -72,6 +73,7 @@ from .names import gsrs_names
 from .pagination import gsrs_browse_all, gsrs_search_all
 from .search import gsrs_search
 from .structure import gsrs_structure
+from .structure_from_id import gsrs_structure_from_id
 from .structure_search import gsrs_structure_search
 from .substance import gsrs_substance
 from .unii_from_name import gsrs_unii_from_name
@@ -109,6 +111,7 @@ __all__ = [
     "gsrs_names",
     "gsrs_codes",
     "gsrs_structure",
+    "gsrs_structure_from_id",
     "gsrs_structure_search",
     "gsrs_hierarchy",
     "gsrs_browse",

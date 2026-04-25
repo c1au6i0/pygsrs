@@ -50,6 +50,11 @@ codes = pygsrs.gsrs_codes("R16CO5Y76E")
 structure = pygsrs.gsrs_structure("R16CO5Y76E")
 print(structure[["smiles", "formula", "mwt", "inchi_key"]])
 
+# Get structure from any identifier — UNII, name, SMILES, InChIKey, or CAS
+structure = pygsrs.gsrs_structure_from_id("aspirin")           # by name
+structure = pygsrs.gsrs_structure_from_id("50-78-2")           # by CAS
+structure = pygsrs.gsrs_structure_from_id("BSYNRYMUTXBXSQ-UHFFFAOYSA-N")  # by InChIKey
+
 # Search by SMILES (substructure, similarity, exact, flex)
 hits = pygsrs.gsrs_structure_search("CC(=O)Oc1ccccc1C(=O)O", search_type="exact")
 
@@ -134,6 +139,36 @@ print(struct[["smiles", "formula", "mwt", "inchi_key", "stereochemistry"]])
 **Returns:** Single-row `DataFrame` with columns: `smiles`, `formula`, `mwt`, `inchi_key`, `inchi`, `stereochemistry`, `optical_activity`, `stereo_centers`, `defined_stereo`, `ez_centers`, `charge`, `molfile`, `query`, `date_retrieved`.
 
 Returns an empty DataFrame for non-chemical substances (biologics, proteins, etc.).
+
+---
+
+### `gsrs_structure_from_id(identifier, id_type="auto")`
+
+Retrieve the chemical structure for a substance identified by **any common identifier**.  The function resolves the identifier to a UNII first, then calls `gsrs_structure`.
+
+| `id_type` | Identifier shape | Resolution strategy |
+|---|---|---|
+| `"unii"` | 10-char alphanumeric, e.g. `"R16CO5Y76E"` | Direct structure lookup |
+| `"name"` | Any name / INN / synonym, e.g. `"aspirin"` | `gsrs_unii_from_name` |
+| `"smiles"` | SMILES string, e.g. `"CC(=O)Oc1ccccc1C(=O)O"` | `gsrs_structure_search` (exact) |
+| `"inchikey"` | 27-char InChIKey, e.g. `"BSYNRYMUTXBXSQ-UHFFFAOYSA-N"` | `gsrs_structure_search` (exact) |
+| `"cas"` | CAS Registry Number, e.g. `"50-78-2"` | `gsrs_search` (free-text) |
+| `"auto"` | *(default)* | Inferred from string pattern |
+
+```python
+# Auto-detect — pattern matching picks the right strategy
+gsrs_structure_from_id("R16CO5Y76E")                      # UNII
+gsrs_structure_from_id("aspirin")                          # name
+gsrs_structure_from_id("CC(=O)Oc1ccccc1C(=O)O")          # SMILES
+gsrs_structure_from_id("BSYNRYMUTXBXSQ-UHFFFAOYSA-N")    # InChIKey
+gsrs_structure_from_id("50-78-2")                         # CAS
+
+# Explicit id_type to override auto-detection
+gsrs_structure_from_id("50-78-2", id_type="cas")
+gsrs_structure_from_id("aspirin", id_type="name")
+```
+
+**Returns:** Same single-row `DataFrame` as `gsrs_structure`, or `None` if the identifier cannot be resolved or the substance has no structure.
 
 ---
 
