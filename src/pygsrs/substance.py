@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from ._base import gsrs_get, graceful
-from ._utils import parse_substances_response, empty_substances_df
+from ._base import graceful, gsrs_get
+from ._utils import parse_substances_response
 
 
 @graceful("GSRS substance lookup")
@@ -21,7 +21,21 @@ def gsrs_substance(unii: str) -> pd.DataFrame | None:
     Returns
     -------
     pandas.DataFrame
-        Single-row data frame, or ``None`` on error.
+        Single-row data frame with substance metadata plus a ``query``
+        column, or ``None`` on error.
+        Columns: ``uuid``, ``approval_id``, ``preferred_name``,
+        ``substance_class``, ``status``, ``definition_type``,
+        ``definition_level``, ``version``, ``names_url``, ``codes_url``,
+        ``self_url``, ``date_retrieved``, ``query``.
+
+    Examples
+    --------
+    >>> df = gsrs_substance("R16CO5Y76E")
+    >>> df["preferred_name"].iloc[0]
+    'ASPIRIN'
+
+    >>> df["approval_id"].iloc[0]
+    'R16CO5Y76E'
     """
     if not isinstance(unii, str) or not unii.strip():
         raise ValueError("`unii` must be a non-empty string.")

@@ -1,45 +1,44 @@
 """
 Response-parsing utilities for pygsrs.
+
+All ``parse_*`` functions accept the raw JSON-decoded data from the GSRS API
+and return a ``pandas.DataFrame`` with normalised, snake_case column names.
+The corresponding ``empty_*_df`` functions return zero-row DataFrames with
+the correct column schema, used as fallbacks when the API returns no records.
 """
 
 from __future__ import annotations
 
-import re
 from datetime import datetime, timezone
-from typing import Any
 
 import pandas as pd
-
-
-# ---------------------------------------------------------------------------
-# Column name normalisation (mirrors janitor::clean_names)
-# ---------------------------------------------------------------------------
-
-def _clean_name(s: str) -> str:
-    s = re.sub(r"[^0-9a-zA-Z]+", "_", s)
-    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
-    s = s.lower().strip("_")
-    return s
-
-
-def clean_names(df: pd.DataFrame) -> pd.DataFrame:
-    df.columns = [_clean_name(c) for c in df.columns]
-    return df
-
 
 # ---------------------------------------------------------------------------
 # Substances list (search / browse)
 # ---------------------------------------------------------------------------
 
-_SUBSTANCE_FIELDS = [
-    "uuid", "approvalID", "preferred_name", "substanceClass",
-    "status", "definitionType", "definitionLevel", "version",
-    "_names", "_codes", "_self",
-]
-
-
 def parse_substances_response(data: dict, date_retrieved: str | None = None) -> pd.DataFrame:
-    """Parse the ``content`` array from a substances search/browse response."""
+    """
+    Parse the ``content`` array from a substances search/browse response.
+
+    Parameters
+    ----------
+    data:
+        JSON-decoded response dict containing a ``"content"`` key with a
+        list of substance records.
+    date_retrieved:
+        ISO 8601 timestamp to stamp each row with. Defaults to the current
+        UTC time if not supplied.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per substance with columns: ``uuid``, ``approval_id``,
+        ``preferred_name``, ``substance_class``, ``status``,
+        ``definition_type``, ``definition_level``, ``version``,
+        ``names_url``, ``codes_url``, ``self_url``, ``date_retrieved``.
+        Returns :func:`empty_substances_df` if there are no records.
+    """
     if date_retrieved is None:
         date_retrieved = datetime.now(timezone.utc).isoformat()
 
@@ -69,6 +68,7 @@ def parse_substances_response(data: dict, date_retrieved: str | None = None) -> 
 
 
 def empty_substances_df() -> pd.DataFrame:
+    """Return a zero-row DataFrame with the substances schema."""
     return pd.DataFrame(columns=[
         "uuid", "approval_id", "preferred_name", "substance_class",
         "status", "definition_type", "definition_level", "version",
@@ -81,6 +81,25 @@ def empty_substances_df() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def parse_names_response(data: list[dict], query: str, date_retrieved: str | None = None) -> pd.DataFrame:
+    """
+    Parse a list of name records from the ``/substances({unii})/names`` endpoint.
+
+    Parameters
+    ----------
+    data:
+        List of name record dicts as returned by the GSRS API.
+    query:
+        The UNII used for the lookup; added as a ``query`` column.
+    date_retrieved:
+        ISO 8601 timestamp. Defaults to the current UTC time.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per name with columns: ``name``, ``type``, ``language``,
+        ``preferred``, ``display_name``, ``query``, ``date_retrieved``.
+        Returns :func:`empty_names_df` if ``data`` is empty.
+    """
     if date_retrieved is None:
         date_retrieved = datetime.now(timezone.utc).isoformat()
 
@@ -102,6 +121,7 @@ def parse_names_response(data: list[dict], query: str, date_retrieved: str | Non
 
 
 def empty_names_df() -> pd.DataFrame:
+    """Return a zero-row DataFrame with the names schema."""
     return pd.DataFrame(columns=[
         "name", "type", "language", "preferred", "display_name",
         "query", "date_retrieved",
@@ -113,6 +133,25 @@ def empty_names_df() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def parse_codes_response(data: list[dict], query: str, date_retrieved: str | None = None) -> pd.DataFrame:
+    """
+    Parse a list of code records from the ``/substances({unii})/codes`` endpoint.
+
+    Parameters
+    ----------
+    data:
+        List of code record dicts as returned by the GSRS API.
+    query:
+        The UNII used for the lookup; added as a ``query`` column.
+    date_retrieved:
+        ISO 8601 timestamp. Defaults to the current UTC time.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per code with columns: ``code_system``, ``code``,
+        ``type``, ``url``, ``query``, ``date_retrieved``.
+        Returns :func:`empty_codes_df` if ``data`` is empty.
+    """
     if date_retrieved is None:
         date_retrieved = datetime.now(timezone.utc).isoformat()
 
@@ -133,6 +172,7 @@ def parse_codes_response(data: list[dict], query: str, date_retrieved: str | Non
 
 
 def empty_codes_df() -> pd.DataFrame:
+    """Return a zero-row DataFrame with the codes schema."""
     return pd.DataFrame(columns=[
         "code_system", "code", "type", "url", "query", "date_retrieved",
     ])
@@ -143,6 +183,29 @@ def empty_codes_df() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def parse_structure_response(data: dict, query: str, date_retrieved: str | None = None) -> pd.DataFrame:
+    """
+    Parse the ``structure`` sub-object from a ``/substances({unii})`` response.
+
+    Parameters
+    ----------
+    data:
+        Full substance record dict; the ``"structure"`` key is extracted.
+    query:
+        The UNII used for the lookup; added as a ``query`` column.
+    date_retrieved:
+        ISO 8601 timestamp. Defaults to the current UTC time.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Single-row DataFrame with columns: ``smiles``, ``formula``,
+        ``mwt``, ``inchi_key``, ``inchi``, ``stereochemistry``,
+        ``optical_activity``, ``stereo_centers``, ``defined_stereo``,
+        ``ez_centers``, ``charge``, ``molfile``, ``query``,
+        ``date_retrieved``.
+        Returns :func:`empty_structure_df` if no structure is present
+        (e.g. for biological substances).
+    """
     if date_retrieved is None:
         date_retrieved = datetime.now(timezone.utc).isoformat()
 
@@ -169,6 +232,7 @@ def parse_structure_response(data: dict, query: str, date_retrieved: str | None 
 
 
 def empty_structure_df() -> pd.DataFrame:
+    """Return a zero-row DataFrame with the structure schema."""
     return pd.DataFrame(columns=[
         "smiles", "formula", "mwt", "inchi_key", "inchi",
         "stereochemistry", "optical_activity", "stereo_centers",
@@ -182,6 +246,27 @@ def empty_structure_df() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def parse_hierarchy_response(data: list[dict], query: str, date_retrieved: str | None = None) -> pd.DataFrame:
+    """
+    Parse a list of hierarchy nodes from the ``/substances({unii})/@hierarchy`` endpoint.
+
+    Parameters
+    ----------
+    data:
+        List of hierarchy node dicts as returned by the GSRS API.
+    query:
+        The UNII used for the lookup; added as a ``query`` column.
+    date_retrieved:
+        ISO 8601 timestamp. Defaults to the current UTC time.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per node with columns: ``text``, ``type``, ``depth``,
+        ``expandable``, ``node_id``, ``parent``, ``approval_id``,
+        ``name``, ``refuuid``, ``substance_class``, ``deprecated``,
+        ``query``, ``date_retrieved``.
+        Returns :func:`empty_hierarchy_df` if ``data`` is empty.
+    """
     if date_retrieved is None:
         date_retrieved = datetime.now(timezone.utc).isoformat()
 
@@ -210,6 +295,7 @@ def parse_hierarchy_response(data: list[dict], query: str, date_retrieved: str |
 
 
 def empty_hierarchy_df() -> pd.DataFrame:
+    """Return a zero-row DataFrame with the hierarchy schema."""
     return pd.DataFrame(columns=[
         "text", "type", "depth", "expandable", "node_id", "parent",
         "approval_id", "name", "refuuid", "substance_class", "deprecated",
@@ -222,6 +308,27 @@ def empty_hierarchy_df() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def parse_vocabularies_response(data: list[dict], date_retrieved: str | None = None) -> pd.DataFrame:
+    """
+    Parse a list of vocabulary domain records from the ``/vocabularies`` endpoint.
+
+    Each domain contains multiple terms; this function flattens them so each
+    row represents one term within one domain.
+
+    Parameters
+    ----------
+    data:
+        List of vocabulary domain dicts, each containing a ``"terms"`` list.
+    date_retrieved:
+        ISO 8601 timestamp. Defaults to the current UTC time.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per term with columns: ``domain``, ``term_type``,
+        ``value``, ``display``, ``hidden``, ``selected``,
+        ``date_retrieved``.
+        Returns :func:`empty_vocabularies_df` if ``data`` is empty.
+    """
     if date_retrieved is None:
         date_retrieved = datetime.now(timezone.utc).isoformat()
 
@@ -246,6 +353,7 @@ def parse_vocabularies_response(data: list[dict], date_retrieved: str | None = N
 
 
 def empty_vocabularies_df() -> pd.DataFrame:
+    """Return a zero-row DataFrame with the vocabularies schema."""
     return pd.DataFrame(columns=[
         "domain", "term_type", "value", "display",
         "hidden", "selected", "date_retrieved",

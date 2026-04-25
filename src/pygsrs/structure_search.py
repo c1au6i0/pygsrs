@@ -6,8 +6,8 @@ from typing import Literal
 
 import pandas as pd
 
-from ._base import gsrs_get, graceful
-from ._utils import parse_substances_response, empty_substances_df
+from ._base import graceful, gsrs_get
+from ._utils import parse_substances_response
 
 SearchType = Literal["sub", "sim", "exact", "flex"]
 
@@ -15,7 +15,7 @@ SearchType = Literal["sub", "sim", "exact", "flex"]
 @graceful("GSRS structure search")
 def gsrs_structure_search(
     smiles: str,
-    type: SearchType = "sub",
+    search_type: SearchType = "sub",
     cutoff: float = 0.8,
     top: int = 10,
 ) -> pd.DataFrame | None:
@@ -26,12 +26,13 @@ def gsrs_structure_search(
     ----------
     smiles:
         SMILES or SMARTS string (e.g. ``"CC(=O)Oc1ccccc1C(=O)O"``).
-    type:
+    search_type:
         Search type: ``"sub"`` (substructure), ``"sim"`` (similarity),
         ``"exact"`` (exact match), or ``"flex"`` (flexible/disconnected).
+        Default ``"sub"``.
     cutoff:
         Tanimoto cutoff for similarity search (0–1). Default 0.8.
-        Ignored for other types.
+        Ignored for other search types.
     top:
         Maximum number of records to return. Default 10.
 
@@ -40,14 +41,26 @@ def gsrs_structure_search(
     pandas.DataFrame
         One row per matching substance plus a ``query_smiles`` column,
         or ``None`` on error.
+
+    Examples
+    --------
+    Exact-match search for aspirin:
+
+    >>> df = gsrs_structure_search("CC(=O)Oc1ccccc1C(=O)O", search_type="exact")
+    >>> df["approval_id"].iloc[0]
+    'R16CO5Y76E'
+
+    Similarity search with a high Tanimoto cutoff:
+
+    >>> df = gsrs_structure_search("CC(=O)Oc1ccccc1C(=O)O", search_type="sim", cutoff=0.95)
     """
     if not isinstance(smiles, str) or not smiles.strip():
         raise ValueError("`smiles` must be a non-empty string.")
-    if type not in ("sub", "sim", "exact", "flex"):
-        raise ValueError("`type` must be one of 'sub', 'sim', 'exact', 'flex'.")
+    if search_type not in ("sub", "sim", "exact", "flex"):
+        raise ValueError("`search_type` must be one of 'sub', 'sim', 'exact', 'flex'.")
 
-    params: dict = {"q": smiles, "type": type, "sync": "true", "top": int(top)}
-    if type == "sim":
+    params: dict = {"q": smiles, "type": search_type, "sync": "true", "top": int(top)}
+    if search_type == "sim":
         params["cutoff"] = float(cutoff)
 
     data = gsrs_get("substances/structureSearch", params=params).json()

@@ -4,12 +4,13 @@ Shared HTTP infrastructure for pygsrs.
 
 from __future__ import annotations
 
+import functools
 import random
 import warnings
 from typing import Any
 
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 BASE_URL = "https://gsrs.ncats.nih.gov/api/v1"
 
@@ -90,16 +91,15 @@ def graceful(what: str):
         Human-readable description used in the warning message.
     """
     def decorator(fn):
+        @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             try:
                 return fn(*args, **kwargs)
             except Exception as exc:
                 warnings.warn(
                     f"{what} failed. Returning None. The error was: {exc}",
-                    stacklevel=3,
+                    stacklevel=2,
                 )
                 return None
-        wrapper.__name__ = fn.__name__
-        wrapper.__doc__ = fn.__doc__
         return wrapper
     return decorator
