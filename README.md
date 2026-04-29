@@ -14,17 +14,33 @@ The **Global Substance Registration System (GSRS)** is the FDA's authoritative d
 
 ## Installation
 
+**With [uv](https://docs.astral.sh/uv/) (recommended):**
+
 ```bash
-pip install pygsrs
+uv add pygsrs
+```
+
+**With [pixi](https://pixi.sh):**
+
+```bash
+pixi add --pypi pygsrs
 ```
 
 Python 3.10+ is required.
 
 ### Optional dependencies
 
-| Extra | Install | Enables |
-|---|---|---|
-| `cache` | `pip install pygsrs[cache]` | Disk-based HTTP caching via `diskcache` |
+| Extra | Enables |
+|---|---|
+| `cache` | Disk-based HTTP caching via `diskcache` |
+
+```bash
+# uv
+uv add "pygsrs[cache]"
+
+# pixi
+pixi add --pypi "pygsrs[cache]"
+```
 
 ---
 
@@ -435,7 +451,7 @@ pygsrs search ibuprofen --format csv
 
 ## Caching
 
-Enable disk-based HTTP caching to avoid redundant API calls (requires `pip install pygsrs[cache]`):
+Enable disk-based HTTP caching to avoid redundant API calls (requires the `cache` extra — see [Installation](#installation)):
 
 ```python
 import pygsrs
@@ -498,7 +514,12 @@ pygsrs.set_base_url()
 # Clone and install in editable mode with dev deps
 git clone https://github.com/heverz/pygsrs.git
 cd pygsrs
-pip install -e ".[dev]"
+
+# uv
+uv sync --extra dev
+
+# pixi
+pixi install
 
 # Run tests (fully offline — uses mocked HTTP via pytest-httpx)
 pytest
