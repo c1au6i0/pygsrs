@@ -12,6 +12,8 @@ Usage
     pygsrs names R16CO5Y76E
     pygsrs codes R16CO5Y76E
     pygsrs structure R16CO5Y76E
+    pygsrs structure-from-id aspirin
+    pygsrs structure-from-id "50-78-2" --id-type cas
     pygsrs structure-search "CC(=O)Oc1ccccc1C(=O)O" --type exact
     pygsrs hierarchy R16CO5Y76E
     pygsrs browse --top 20
@@ -99,6 +101,21 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("unii", help="FDA UNII code.")
     _add_format(p)
 
+    # structure-from-id
+    p = sub.add_parser(
+        "structure-from-id",
+        help="Get structure from any identifier (UNII, name, SMILES, InChIKey, CAS).",
+    )
+    p.add_argument("identifier", help="Substance identifier.")
+    p.add_argument(
+        "--id-type",
+        dest="id_type",
+        default="auto",
+        choices=["auto", "unii", "name", "smiles", "inchikey", "cas"],
+        help="Identifier type (default: auto-detect).",
+    )
+    _add_format(p)
+
     # structure-search
     p = sub.add_parser("structure-search", help="Search by SMILES.")
     p.add_argument("smiles", help="SMILES string.")
@@ -151,6 +168,7 @@ def main(argv: list[str] | None = None) -> None:
         gsrs_names,
         gsrs_search,
         gsrs_structure,
+        gsrs_structure_from_id,
         gsrs_structure_search,
         gsrs_substance,
         gsrs_unii_from_name,
@@ -168,6 +186,8 @@ def main(argv: list[str] | None = None) -> None:
         result = gsrs_codes(args.unii)
     elif cmd == "structure":
         result = gsrs_structure(args.unii)
+    elif cmd == "structure-from-id":
+        result = gsrs_structure_from_id(args.identifier, id_type=args.id_type)
     elif cmd == "structure-search":
         result = gsrs_structure_search(
             args.smiles,
