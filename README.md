@@ -512,7 +512,7 @@ pygsrs.set_base_url()
 
 ```bash
 # Clone and install in editable mode with dev deps
-git clone https://github.com/heverz/pygsrs.git
+git clone https://github.com/c1au6i0/pygsrs.git
 cd pygsrs
 
 # uv
