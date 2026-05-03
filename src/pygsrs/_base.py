@@ -31,7 +31,7 @@ class _RetryableError(Exception):
     """Wraps errors that should trigger a retry."""
 
 
-def gsrs_get(path: str, params: dict[str, Any] | None = None) -> httpx.Response:
+def _gsrs_get_impl(path: str, params: dict[str, Any] | None = None) -> httpx.Response:
     """
     Perform a GET request against the GSRS API with retry logic.
 
@@ -77,6 +77,32 @@ def gsrs_get(path: str, params: dict[str, Any] | None = None) -> httpx.Response:
     except _RetryableError as exc:
         # Exhausted retries on a retryable error — surface as a plain error
         raise RuntimeError(str(exc)) from exc
+
+
+def gsrs_get(path: str, params: dict[str, Any] | None = None) -> httpx.Response:
+    """
+    Perform a GET request against the GSRS API.
+
+    Routes through the disk cache when caching is enabled via
+    :func:`~pygsrs.enable_cache`; otherwise calls :func:`_gsrs_get_impl`
+    directly.
+
+    Parameters
+    ----------
+    path:
+        URL path to append to the base URL (e.g. ``"substances/search"``).
+    params:
+        Query parameters dict.
+
+    Returns
+    -------
+    httpx.Response
+    """
+    # Lazy import to avoid a circular dependency at module load time.
+    from . import _cache  # noqa: PLC0415
+    if _cache._cache is not None:
+        return _cache.cached_gsrs_get(path, params)
+    return _gsrs_get_impl(path, params)
 
 
 def graceful(what: str):

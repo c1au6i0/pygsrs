@@ -22,8 +22,6 @@ from typing import Any
 
 import httpx
 
-from ._base import BASE_URL
-
 # Module-level state
 _cache: Any = None        # diskcache.Cache instance or None
 _cache_ttl: int | None = None
@@ -104,7 +102,7 @@ def _cache_key(url: str, params: dict | None) -> str:
 
 def cached_gsrs_get(path: str, params: dict[str, Any] | None = None) -> httpx.Response:
     """
-    Wrapper around :func:`~pygsrs._base.gsrs_get` that checks the cache first.
+    Wrapper around :func:`~pygsrs._base._gsrs_get_impl` that checks the cache first.
 
     If caching is disabled (default), this is a transparent pass-through.
 
@@ -119,26 +117,24 @@ def cached_gsrs_get(path: str, params: dict[str, Any] | None = None) -> httpx.Re
     -------
     httpx.Response
     """
-    from ._base import gsrs_get
-
-    if _cache is None:
-        return gsrs_get(path, params)
+    from ._base import BASE_URL, _gsrs_get_impl
 
     url = f"{BASE_URL}/{path.lstrip('/')}"
     key = _cache_key(url, params)
 
-    if key in _cache:
+    if _cache is not None and key in _cache:
         # Reconstruct a minimal response from cached data
         cached = _cache[key]
         # Return a mock response wrapping the cached JSON bytes
         return _CachedResponse(cached)
 
-    resp = gsrs_get(path, params)
+    resp = _gsrs_get_impl(path, params)
     # Cache raw bytes to avoid re-serialising
-    try:
-        _cache.set(key, resp.content, expire=_cache_ttl)
-    except Exception:
-        pass  # Cache write failure is non-fatal
+    if _cache is not None:
+        try:
+            _cache.set(key, resp.content, expire=_cache_ttl)
+        except Exception:
+            pass  # Cache write failure is non-fatal
     return resp
 
 
